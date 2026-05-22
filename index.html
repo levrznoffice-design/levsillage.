@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0E0E11">
+<title>levsillage.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0E0E11;--text:#EDE8E0;--muted:#8A857C;--accent:#C8102E;
+  --card:rgba(255,255,255,.04);--border:rgba(255,255,255,.08);
+  --serif:'Playfair Display',Didot,'Bodoni Moda',Georgia,serif;
+  --sans:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:var(--sans);color:var(--text);background:var(--bg);
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  display:flex;flex-direction:column;
+}
+/* film grain overlay */
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── HEADER ── */
+.app-header{
+  text-align:center;padding:24px 16px 12px;flex-shrink:0;
+}
+.logo-crown{width:48px;height:auto;margin-bottom:6px;display:block;margin-inline:auto}
+.wordmark{
+  font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:2px;
+  color:var(--text);line-height:1;
+}
+
+/* ── MAIN CONTENT ── */
+.tab-content{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:0 16px 16px;
+}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── BOTTOM TAB BAR ── */
+.tab-bar{
+  flex-shrink:0;display:flex;
+  border-top:1px solid var(--border);
+  background:var(--bg);padding:6px 0 env(safe-area-inset-bottom,8px);
+  position:relative;z-index:100;
+}
+.tab-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;color:var(--muted);font-family:var(--sans);
+  font-size:10px;font-weight:500;padding:6px 4px;cursor:pointer;
+  transition:color .2s;
+}
+.tab-btn.active{color:var(--text)}
+.tab-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.5}
+.tab-btn.active svg{stroke:var(--text)}
+
+/* ── POCKETS GRID ── */
+.section-title{
+  font-family:var(--serif);font-size:18px;font-weight:400;
+  margin-bottom:14px;letter-spacing:.5px;
+}
+.pockets-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;
+}
+.pocket-cell{
+  border:1px solid var(--border);border-radius:12px;padding:14px;
+  text-align:center;cursor:pointer;transition:all .25s;
+  position:relative;min-height:80px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--card);
+}
+.pocket-cell:active{transform:scale(.97)}
+.pocket-cell.selected{border-color:var(--accent);box-shadow:0 0 20px rgba(200,16,46,.15)}
+.pocket-cell.full{opacity:.45;cursor:not-allowed}
+.pocket-icon{width:28px;height:28px;margin-bottom:6px;opacity:.7}
+.pocket-label{font-size:13px;font-weight:500;color:var(--text)}
+.pocket-count{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── CAMERA BUTTON ── */
+.camera-row{text-align:center;margin-bottom:22px}
+.camera-btn{
+  width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--accent);display:inline-flex;align-items:center;justify-content:center;
+  box-shadow:0 0 24px rgba(200,16,46,.25);transition:transform .15s;
+  position:relative;overflow:hidden;
+}
+.camera-btn:active{transform:scale(.92)}
+.camera-btn img{width:32px;height:32px;filter:brightness(10)}
+#photoInput{
+  position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;
+  font-size:0;/* prevent keyboard on some devices */
+}
+
+/* ── FOLD INSTRUCTION MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(14,14,17,.88);z-index:500;
+  display:none;align-items:center;justify-content:center;padding:24px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.modal-overlay.visible{display:flex}
+.modal-card{
+  background:#1A1A1F;border:1px solid var(--border);border-radius:16px;
+  padding:28px 24px;text-align:center;max-width:320px;width:100%;
+}
+.modal-card .blotter-img{width:120px;height:auto;margin:16px auto;display:block}
+.modal-card .fold-text{
+  font-family:var(--serif);font-size:22px;margin-bottom:4px;
+}
+.modal-card .fold-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+.modal-card .btn-done{
+  background:var(--accent);color:#fff;border:none;border-radius:8px;
+  padding:12px 32px;font-family:var(--sans);font-size:15px;font-weight:500;
+  cursor:pointer;transition:transform .15s;
+}
+.modal-card .btn-done:active{transform:scale(.95)}
+
+/* ── COLLECTION ── */
+.collection-group{margin-bottom:20px}
+.collection-group-title{
+  font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:8px;
+}
+.collection-group-title img{width:16px;height:16px;opacity:.5}
+.scent-card{
+  display:flex;align-items:center;gap:12px;
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:10px 12px;margin-bottom:8px;
+}
+.scent-thumb{
+  width:56px;height:56px;border-radius:8px;object-fit:cover;cursor:pointer;
+  flex-shrink:0;border:1px solid var(--border);
+}
+.scent-info{flex:1;min-width:0}
+.scent-fold-label{font-size:13px;font-weight:500}
+.scent-blotter{width:48px;height:auto;display:block;margin-top:4px}
+.scent-actions{display:flex;gap:6px;flex-shrink:0}
+.btn-icon{
+  width:36px;height:36px;border:none;background:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;border-radius:8px;
+  transition:background .2s;
+}
+.btn-icon:active{background:rgba(255,255,255,.08)}
+.btn-icon img{width:22px;height:22px}
+.btn-icon.delete-btn svg{width:18px;height:18px;stroke:var(--muted)}
+
+/* Clear all button */
+.clear-all-row{text-align:center;margin-top:16px;padding-bottom:20px}
+.clear-all-btn{
+  background:none;border:1px solid var(--border);border-radius:8px;
+  color:var(--muted);font-family:var(--sans);font-size:13px;padding:10px 24px;
+  cursor:pointer;transition:all .2s;
+}
+.clear-all-btn:active{border-color:var(--accent);color:var(--accent)}
+
+.empty-state{
+  text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;
+  line-height:1.6;
+}
+.empty-state .empty-icon{font-size:32px;margin-bottom:12px;opacity:.4}
+
+/* ── FULLSCREEN PHOTO ── */
+.fullscreen-overlay{
+  position:fixed;inset:0;background:rgba(14,14,17,.95);z-index:600;
+  display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+.fullscreen-overlay.visible{display:flex}
+.fullscreen-overlay img{
+  max-width:92%;max-height:85vh;object-fit:contain;border-radius:4px;
+}
+.fullscreen-close{
+  position:absolute;top:16px;right:16px;width:40px;height:40px;
+  background:rgba(255,255,255,.1);border:none;border-radius:50%;
+  color:var(--text);font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.fullscreen-close:active{background:rgba(255,255,255,.2)}
+
+/* ── CONFIRM DIALOG ── */
+.confirm-overlay{
+  position:fixed;inset:0;background:rgba(14,14,17,.88);z-index:700;
+  display:none;align-items:center;justify-content:center;padding:24px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.confirm-overlay.visible{display:flex}
+.confirm-card{
+  background:#1A1A1F;border:1px solid var(--border);border-radius:16px;
+  padding:24px;text-align:center;max-width:300px;width:100%;
+}
+.confirm-card p{font-size:15px;margin-bottom:20px;line-height:1.5}
+.confirm-btns{display:flex;gap:10px}
+.confirm-btns button{
+  flex:1;padding:12px;border-radius:8px;font-family:var(--sans);
+  font-size:14px;font-weight:500;cursor:pointer;border:none;transition:transform .15s;
+}
+.confirm-btns button:active{transform:scale(.96)}
+.confirm-cancel{background:rgba(255,255,255,.08);color:var(--text)}
+.confirm-ok{background:var(--accent);color:#fff}
+
+/* ── FAVORITES TAB ── */
+.fav-card{
+  display:flex;align-items:center;gap:12px;
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:10px 12px;margin-bottom:8px;
+}
+.fav-thumb{
+  width:56px;height:56px;border-radius:8px;object-fit:cover;cursor:pointer;
+  flex-shrink:0;border:1px solid var(--border);
+}
+.fav-label{flex:1;font-size:14px;color:var(--muted)}
+.fav-remove{
+  width:36px;height:36px;border:none;background:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;border-radius:8px;
+}
+.fav-remove:active{background:rgba(255,255,255,.08)}
+.fav-remove img{width:22px;height:22px}
+
+/* ── HOW IT WORKS ── */
+.how-step{
+  display:flex;align-items:center;gap:16px;
+  margin-bottom:20px;
+}
+.how-step-icon{width:48px;height:48px;flex-shrink:0;object-fit:contain}
+.how-step-text{font-size:14px;line-height:1.5;color:var(--text)}
+.how-intro{
+  font-size:14px;line-height:1.7;color:var(--muted);margin-bottom:24px;
+}
+
+/* ── DONATE ── */
+.donate-section{text-align:center;padding:40px 20px}
+.donate-section p{font-size:15px;line-height:1.6;color:var(--muted);margin-bottom:24px}
+.donate-btn{
+  display:inline-block;background:var(--accent);color:#fff;
+  text-decoration:none;padding:14px 32px;border-radius:10px;
+  font-family:var(--sans);font-size:15px;font-weight:500;
+  transition:transform .15s;
+}
+.donate-btn:active{transform:scale(.95)}
+
+/* ── STATUS MESSAGE (pocket full, etc.) ── */
+.toast{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  background:#1A1A1F;border:1px solid var(--border);border-radius:10px;
+  padding:12px 20px;font-size:13px;color:var(--text);
+  z-index:400;opacity:0;transition:opacity .3s;pointer-events:none;
+  text-align:center;max-width:280px;
+}
+.toast.visible{opacity:1}
+
+/* hide scrollbar but keep scroll */
+.tab-content::-webkit-scrollbar{display:none}
+.tab-content{-ms-overflow-style:none;scrollbar-width:none}
+
+/* pocket waiting-for-tap pulse */
+.pocket-cell.awaiting{animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(200,16,46,0)}
+  50%{box-shadow:0 0 16px 2px rgba(200,16,46,.2)}
+}
+
+/* step indicator for add flow */
+.flow-hint{
+  text-align:center;font-size:13px;color:var(--accent);margin-bottom:14px;
+  min-height:18px;transition:opacity .3s;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <img src="assets/logo-crown.png" alt="" class="logo-crown">
+  <div class="wordmark">levsillage.</div>
+</header>
+
+<!-- TAB CONTENT -->
+<div class="tab-content">
+
+  <!-- ══ MAIN TAB ══ -->
+  <div id="tabMain" class="tab-panel active">
+    <div class="flow-hint" id="flowHint"></div>
+
+    <!-- Camera -->
+    <div class="camera-row">
+      <label class="camera-btn" id="cameraBtn">
+        <img src="assets/icon-camera.png" alt="Take photo">
+        <input type="file" accept="image/*" capture="environment" id="photoInput">
+      </label>
+    </div>
+
+    <!-- Pockets -->
+    <div class="section-title">Choose a pocket</div>
+    <div class="pockets-grid" id="pocketsGrid"></div>
+
+    <!-- Collection -->
+    <div class="section-title">Your collection</div>
+    <div id="collectionList"></div>
+    <div class="clear-all-row" id="clearAllRow" style="display:none">
+      <button class="clear-all-btn" id="clearAllBtn">Clear all</button>
+    </div>
+  </div>
+
+  <!-- ══ FAVORITES TAB ══ -->
+  <div id="tabFavorites" class="tab-panel">
+    <div class="section-title">Favorites</div>
+    <div id="favoritesList"></div>
+  </div>
+
+  <!-- ══ HOW IT WORKS TAB ══ -->
+  <div id="tabHow" class="tab-panel">
+    <div class="section-title">How it works</div>
+    <p class="how-intro">In the world of perfumery it's hard to remember which scents you tried and liked. I built a simple system: spray a blotter, snap a photo of the bottle, pick a pocket, and the app tells you how many times to fold the strip so nothing gets mixed up. Later you just match the strip to the photo. Go sniff and enjoy!</p>
+    <div class="how-step">
+      <img src="assets/icon-camera.png" class="how-step-icon" alt="">
+      <div class="how-step-text">Snap a photo of the bottle.</div>
+    </div>
+    <div class="how-step">
+      <img src="assets/icon-pocket.png" class="how-step-icon" alt="">
+      <div class="how-step-text">Pick a pocket.</div>
+    </div>
+    <div class="how-step">
+      <img src="assets/blotter-3.png" class="how-step-icon" alt="">
+      <div class="how-step-text">Fold the strip the number of times the app shows.</div>
+    </div>
+    <div class="how-step">
+      <img src="assets/icon-heart-filled.png" class="how-step-icon" alt="">
+      <div class="how-step-text">At home, match the strip to the photo and save your favorites.</div>
+    </div>
+  </div>
+
+  <!-- ══ DONATE TAB ══ -->
+  <div id="tabDonate" class="tab-panel">
+    <div class="donate-section">
+      <div class="section-title">Support</div>
+      <p>If this little app helped you, you can support me 🙏</p>
+      <a href="https://revolut.me/levrazn" target="_blank" rel="noopener" class="donate-btn">Donate via Revolut</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM TAB BAR -->
+<nav class="tab-bar">
+  <button class="tab-btn active" data-tab="tabMain">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Main</span>
+  </button>
+  <button class="tab-btn" data-tab="tabFavorites">
+    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+    <span>Favorites</span>
+  </button>
+  <button class="tab-btn" data-tab="tabHow">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span>How it works</span>
+  </button>
+  <button class="tab-btn" data-tab="tabDonate">
+    <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    <span>Donate</span>
+  </button>
+</nav>
+
+<!-- FOLD INSTRUCTION MODAL -->
+<div class="modal-overlay" id="foldModal">
+  <div class="modal-card">
+    <div class="fold-text" id="foldText"></div>
+    <div class="fold-sub" id="foldSub"></div>
+    <img class="blotter-img" id="foldBlotter" src="" alt="">
+    <button class="btn-done" id="foldDone">Got it</button>
+  </div>
+</div>
+
+<!-- FULLSCREEN PHOTO -->
+<div class="fullscreen-overlay" id="fullscreenOverlay">
+  <button class="fullscreen-close" id="fullscreenClose">&times;</button>
+  <img id="fullscreenImg" src="" alt="Bottle photo">
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-card">
+    <p id="confirmMsg"></p>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" id="confirmCancel">Cancel</button>
+      <button class="confirm-ok" id="confirmOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+// ── STORAGE ──
+const COLL_KEY = 'levsillage_collection';
+const FAV_KEY  = 'levsillage_favorites';
+
+function loadCollection(){ try{ return JSON.parse(localStorage.getItem(COLL_KEY)) || []; }catch(e){ return []; } }
+function saveCollection(c){ localStorage.setItem(COLL_KEY, JSON.stringify(c)); }
+function loadFavorites(){ try{ return JSON.parse(localStorage.getItem(FAV_KEY)) || []; }catch(e){ return []; } }
+function saveFavorites(f){ localStorage.setItem(FAV_KEY, JSON.stringify(f)); }
+
+let collection = loadCollection();
+let favorites  = loadFavorites();
+
+// ── STATE ──
+let pendingPhoto = null; // base64 data waiting for pocket selection
+const MAX_FOLDS = 5;
+const POCKETS = [1,2,3,4];
+const POCKET_NAMES = {
+  1: 'Upper Left',
+  2: 'Upper Right',
+  3: 'Lower Left',
+  4: 'Lower Right'
+};
+
+// ── IMAGE COMPRESSION ──
+function compressImage(file, maxDim, quality){
+  return new Promise((resolve,reject) => {
+    const reader = new FileReader();
+    reader.onload = function(e){
+      const img = new Image();
+      img.onload = function(){
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if(w > maxDim || h > maxDim){
+          if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality || 0.6));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── TABS ──
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabBtns.forEach(b => b.classList.remove('active'));
+    tabPanels.forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg, duration){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('visible'), duration || 2500);
+}
+
+// ── CONFIRM DIALOG ──
+function showConfirm(msg){
+  return new Promise(resolve => {
+    document.getElementById('confirmMsg').textContent = msg;
+    const overlay = document.getElementById('confirmOverlay');
+    overlay.classList.add('visible');
+    function cleanup(result){
+      overlay.classList.remove('visible');
+      document.getElementById('confirmOk').removeEventListener('click', onOk);
+      document.getElementById('confirmCancel').removeEventListener('click', onCancel);
+      resolve(result);
+    }
+    function onOk(){ cleanup(true); }
+    function onCancel(){ cleanup(false); }
+    document.getElementById('confirmOk').addEventListener('click', onOk);
+    document.getElementById('confirmCancel').addEventListener('click', onCancel);
+  });
+}
+
+// ── POCKETS ──
+function getMaxFoldInPocket(pocketId){
+  const inPocket = collection.filter(s => s.pocketId === pocketId);
+  if(inPocket.length === 0) return -1;
+  return Math.max(...inPocket.map(s => s.foldCount));
+}
+
+function isPocketFull(pocketId){
+  return getMaxFoldInPocket(pocketId) >= MAX_FOLDS;
+}
+
+function renderPockets(){
+  const grid = document.getElementById('pocketsGrid');
+  grid.innerHTML = '';
+  POCKETS.forEach(pid => {
+    const count = collection.filter(s => s.pocketId === pid).length;
+    const full = isPocketFull(pid);
+    const cell = document.createElement('div');
+    cell.className = 'pocket-cell' + (full ? ' full' : '') + (pendingPhoto ? ' awaiting' : '');
+    cell.innerHTML = `
+      <img src="assets/icon-pocket.png" class="pocket-icon" alt="">
+      <div class="pocket-label">${POCKET_NAMES[pid]}</div>
+      <div class="pocket-count">${count} scent${count!==1?'s':''}</div>
+    `;
+    cell.addEventListener('click', () => onPocketTap(pid));
+    grid.appendChild(cell);
+  });
+}
+
+function onPocketTap(pocketId){
+  if(!pendingPhoto){
+    showToast('Take a photo first');
+    return;
+  }
+  if(isPocketFull(pocketId)){
+    showToast('This pocket is full (max 6 strips)');
+    return;
+  }
+  const nextFold = getMaxFoldInPocket(pocketId) + 1;
+  const record = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    photo: pendingPhoto,
+    pocketId: pocketId,
+    foldCount: nextFold,
+    timestamp: Date.now()
+  };
+  collection.push(record);
+  saveCollection(collection);
+  pendingPhoto = null;
+  updateFlowHint();
+  renderPockets();
+  renderCollection();
+  showFoldModal(nextFold);
+}
+
+// ── FOLD MODAL ──
+function showFoldModal(foldCount){
+  document.getElementById('foldText').textContent =
+    foldCount === 0 ? 'No fold' : ('Fold × ' + foldCount);
+  document.getElementById('foldSub').textContent =
+    foldCount === 0 ? 'Keep the strip flat, no fold needed' : 'Fold the strip ' + foldCount + ' time' + (foldCount > 1 ? 's' : '');
+  document.getElementById('foldBlotter').src = 'assets/blotter-' + foldCount + '.png';
+  document.getElementById('foldModal').classList.add('visible');
+}
+document.getElementById('foldDone').addEventListener('click', () => {
+  document.getElementById('foldModal').classList.remove('visible');
+});
+
+// ── FLOW HINT ──
+function updateFlowHint(){
+  const hint = document.getElementById('flowHint');
+  if(pendingPhoto){
+    hint.textContent = 'Now tap a pocket ↓';
+  } else {
+    hint.textContent = '';
+  }
+}
+
+// ── PHOTO INPUT ──
+document.getElementById('photoInput').addEventListener('change', async function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  try {
+    pendingPhoto = await compressImage(file, 800, 0.6);
+    updateFlowHint();
+    renderPockets();
+  } catch(err){
+    showToast('Could not load photo');
+  }
+  this.value = '';
+});
+
+// ── COLLECTION ──
+function renderCollection(){
+  const list = document.getElementById('collectionList');
+  list.innerHTML = '';
+  if(collection.length === 0){
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">✦</div>No scents yet.<br>Tap the camera to start.</div>';
+    document.getElementById('clearAllRow').style.display = 'none';
+    return;
+  }
+  document.getElementById('clearAllRow').style.display = '';
+  const grouped = {};
+  POCKETS.forEach(p => grouped[p] = []);
+  collection.forEach(s => { if(grouped[s.pocketId]) grouped[s.pocketId].push(s); });
+
+  POCKETS.forEach(pid => {
+    const items = grouped[pid];
+    if(items.length === 0) return;
+    items.sort((a,b) => a.foldCount - b.foldCount);
+    const group = document.createElement('div');
+    group.className = 'collection-group';
+    group.innerHTML = `<div class="collection-group-title"><img src="assets/icon-pocket.png" alt="">${POCKET_NAMES[pid]}</div>`;
+    items.forEach(s => {
+      const isFav = favorites.some(f => f.id === s.id);
+      const card = document.createElement('div');
+      card.className = 'scent-card';
+      card.innerHTML = `
+        <img src="${s.photo}" class="scent-thumb" alt="Bottle" data-id="${s.id}">
+        <div class="scent-info">
+          <div class="scent-fold-label">${s.foldCount === 0 ? 'No fold' : 'Fold ×' + s.foldCount}</div>
+          <img src="assets/blotter-${s.foldCount}.png" class="scent-blotter" alt="">
+        </div>
+        <div class="scent-actions">
+          <button class="btn-icon fav-btn" data-id="${s.id}">
+            <img src="assets/${isFav ? 'icon-heart-filled' : 'icon-heart-outline'}.png" alt="Favorite">
+          </button>
+          <button class="btn-icon delete-btn" data-id="${s.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          </button>
+        </div>
+      `;
+      // Thumbnail → fullscreen
+      card.querySelector('.scent-thumb').addEventListener('click', () => openFullscreen(s.photo));
+      // Favorite toggle
+      card.querySelector('.fav-btn').addEventListener('click', () => toggleFavorite(s));
+      // Delete
+      card.querySelector('.delete-btn').addEventListener('click', () => deleteScent(s.id));
+      group.appendChild(card);
+    });
+    list.appendChild(group);
+  });
+}
+
+// ── FULLSCREEN ──
+function openFullscreen(src){
+  document.getElementById('fullscreenImg').src = src;
+  document.getElementById('fullscreenOverlay').classList.add('visible');
+}
+document.getElementById('fullscreenClose').addEventListener('click', () => {
+  document.getElementById('fullscreenOverlay').classList.remove('visible');
+});
+document.getElementById('fullscreenOverlay').addEventListener('click', (e) => {
+  if(e.target === e.currentTarget) document.getElementById('fullscreenOverlay').classList.remove('visible');
+});
+
+// ── FAVORITE TOGGLE ──
+function toggleFavorite(scent){
+  const idx = favorites.findIndex(f => f.id === scent.id);
+  if(idx >= 0){
+    favorites.splice(idx, 1);
+  } else {
+    favorites.push({ id: scent.id, photo: scent.photo, timestamp: Date.now() });
+  }
+  saveFavorites(favorites);
+  renderCollection();
+  renderFavorites();
+}
+
+// ── DELETE SCENT ──
+async function deleteScent(id){
+  const ok = await showConfirm('Are you sure you want to delete this scent?');
+  if(!ok) return;
+  collection = collection.filter(s => s.id !== id);
+  saveCollection(collection);
+  renderPockets();
+  renderCollection();
+}
+
+// ── CLEAR ALL ──
+document.getElementById('clearAllBtn').addEventListener('click', async () => {
+  const ok = await showConfirm('Clear the entire collection? (Favorites will be kept.)');
+  if(!ok) return;
+  collection = [];
+  saveCollection(collection);
+  renderPockets();
+  renderCollection();
+  showToast('Collection cleared');
+});
+
+// ── FAVORITES TAB ──
+function renderFavorites(){
+  const list = document.getElementById('favoritesList');
+  list.innerHTML = '';
+  if(favorites.length === 0){
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">♡</div>No favorites yet.<br>Tap the heart on any scent to save it here.</div>';
+    return;
+  }
+  favorites.forEach(fav => {
+    const card = document.createElement('div');
+    card.className = 'fav-card';
+    card.innerHTML = `
+      <img src="${fav.photo}" class="fav-thumb" alt="Bottle">
+      <div class="fav-label">Saved scent</div>
+      <button class="fav-remove" data-id="${fav.id}">
+        <img src="assets/icon-heart-filled.png" alt="Remove">
+      </button>
+    `;
+    card.querySelector('.fav-thumb').addEventListener('click', () => openFullscreen(fav.photo));
+    card.querySelector('.fav-remove').addEventListener('click', () => removeFavorite(fav.id));
+    list.appendChild(card);
+  });
+}
+
+async function removeFavorite(id){
+  const ok = await showConfirm('Remove this scent from favorites?');
+  if(!ok) return;
+  favorites = favorites.filter(f => f.id !== id);
+  saveFavorites(favorites);
+  renderFavorites();
+  renderCollection(); // update heart icons
+}
+
+// ── INIT ──
+renderPockets();
+renderCollection();
+renderFavorites();
+
+})();
+</script>
+</body>
+</html>
